@@ -1,0 +1,380 @@
+<script setup>
+import { ref, computed, onMounted, nextTick } from 'vue';
+
+// 对话消息列表
+const messages = ref([]);
+// 用户输入内容
+const userInput = ref('');
+// 加载状态
+const isLoading = ref(false);
+
+// 计算属性：判断输入框是否可发送
+const canSend = computed(() => {
+  return userInput.value.trim().length > 0 && !isLoading.value;
+});
+
+// 发送消息
+const sendMessage = async () => {
+  if (!canSend.value) return;
+  
+  const text = userInput.value.trim();
+  // 清空输入框
+  userInput.value = '';
+  
+  // 添加用户消息
+  messages.value.push({
+    id: Date.now(),
+    type: 'user',
+    content: text,
+    timestamp: new Date()
+  });
+  
+  // 滚动到底部
+  await nextTick();
+  scrollToBottom();
+  
+  // 设置加载状态
+  isLoading.value = true;
+  
+  // 模拟AI回复延迟
+  setTimeout(() => {
+    // 添加AI回复
+    messages.value.push({
+      id: Date.now() + 1,
+      type: 'ai',
+      content: getMockAIResponse(text),
+      timestamp: new Date()
+    });
+    
+    isLoading.value = false;
+    
+    // 滚动到底部
+    nextTick(() => scrollToBottom());
+  }, 1000);
+};
+
+// 模拟AI回复
+const getMockAIResponse = (userQuery) => {
+  const responses = [
+    '感谢您的提问！我是AI助手，可以帮助您解答各种问题。',
+    '这是一个很好的问题。根据我的理解，您想了解关于这个话题的更多信息。',
+    '您的问题很有趣。让我为您提供一些相关信息和建议。',
+    '我理解您的需求。针对您提到的情况，我有以下几点建议。',
+    '这个问题比较复杂，让我为您详细分析一下各个方面。'
+  ];
+  
+  // 根据用户输入内容简单分类回复
+  if (userQuery.includes('你好') || userQuery.includes('嗨')) {
+    return '你好！很高兴为您提供帮助，请问有什么我可以协助您的吗？';
+  } else if (userQuery.includes('帮助') || userQuery.includes('怎么')) {
+    return '当然可以帮助您！您可以问我任何问题，我会尽力提供准确的信息和建议。';
+  } else if (userQuery.includes('再见') || userQuery.includes('拜拜')) {
+    return '再见！如果您有任何其他问题，随时欢迎回来咨询。';
+  } else {
+    // 随机选择一个通用回复
+    return responses[Math.floor(Math.random() * responses.length)];
+  }
+};
+
+// 滚动到底部
+const scrollToBottom = () => {
+  const chatContainer = document.querySelector('.chat-messages');
+  if (chatContainer) {
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+  }
+};
+
+// 处理键盘事件
+const handleKeyPress = (event) => {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    sendMessage();
+  }
+};
+
+// 组件挂载时添加欢迎消息
+onMounted(() => {
+  messages.value.push({
+    id: 1,
+    type: 'ai',
+    content: '您好！我是AI助手，很高兴为您提供帮助。请问有什么我可以协助您的吗？',
+    timestamp: new Date()
+  });
+});
+</script>
+
+<template>
+  <!-- 模板部分保持不变 -->
+  <div class="ai-chat-container">
+    <div class="chat-header">
+      <h2>AI 对话助手</h2>
+      <p class="subtitle">智能问答，随时为您服务</p>
+    </div>
+    
+    <div class="chat-messages">
+      <div 
+        v-for="message in messages" 
+        :key="message.id"
+        :class="['message', message.type]"
+      >
+        <div class="avatar">
+          {{ message.type === 'user' ? '👤' : '🤖' }}
+        </div>
+        <div class="message-content">
+          <p>{{ message.content }}</p>
+          <span class="message-time">{{ new Date(message.timestamp).toLocaleTimeString() }}</span>
+        </div>
+      </div>
+      <div v-if="isLoading" class="loading-indicator">
+        <div class="typing">
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="chat-input">
+      <textarea
+        v-model="userInput"
+        @keypress="handleKeyPress"
+        placeholder="输入您的问题..."
+        rows="2"
+        :disabled="isLoading"
+      ></textarea>
+      <button 
+        @click="sendMessage"
+        :disabled="!canSend"
+        class="send-button"
+      >
+        {{ isLoading ? '发送中...' : '发送' }}
+      </button>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+/* 重置容器样式，确保全屏显示且无滚动条 */
+.ai-chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: #f8f9fa;
+  border-radius: 0;
+  overflow: hidden;
+  box-shadow: none;
+}
+
+.chat-header {
+  background-color: #4a90e2;
+  color: white;
+  padding: 15px 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.chat-header h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.subtitle {
+  margin: 5px 0 0 0;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+/* 消息区域可以滚动，但整个页面不滚动 */
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  background-color: #f5f5f5;
+  scrollbar-width: thin; /* Firefox */
+}
+
+/* 自定义滚动条样式，使其更美观 */
+.chat-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
+}
+
+.message {
+  display: flex;
+  margin-bottom: 20px;
+  align-items: flex-start;
+}
+
+.message.user {
+  flex-direction: row-reverse;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.message-content {
+  max-width: 70%;
+  padding: 12px 16px;
+  border-radius: 18px;
+  margin: 0 10px;
+  position: relative;
+}
+
+.message.user .message-content {
+  background-color: #4a90e2;
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.message.ai .message-content {
+  background-color: white;
+  color: #333;
+  border-bottom-left-radius: 4px;
+}
+
+.message-content p {
+  margin: 0;
+  word-wrap: break-word;
+}
+
+.message-time {
+  font-size: 12px;
+  opacity: 0.6;
+  position: absolute;
+  bottom: 4px;
+  right: 10px;
+}
+
+.loading-indicator {
+  display: flex;
+  justify-content: flex-start;
+  padding: 0 10px;
+}
+
+.typing {
+  display: flex;
+  align-items: center;
+  background-color: white;
+  padding: 10px 15px;
+  border-radius: 18px;
+  border-bottom-left-radius: 4px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #4a90e2;
+  margin: 0 3px;
+  animation: typing 1.4s infinite ease-in-out both;
+}
+
+.dot:nth-child(1) { animation-delay: -0.32s; }
+.dot:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes typing {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
+}
+
+.chat-input {
+  display: flex;
+  padding: 15px 20px;
+  background-color: white;
+  border-top: 1px solid #eaeaea;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+textarea {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  resize: none;
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+textarea:focus {
+  border-color: #4a90e2;
+}
+
+.send-button {
+  padding: 12px 24px;
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  align-self: flex-end;
+  transition: background-color 0.2s;
+}
+
+.send-button:hover:not(:disabled) {
+  background-color: #357abd;
+}
+
+.send-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+/* 移除响应式媒体查询中的额外滚动条 */
+@media (max-width: 768px) {
+  .message-content {
+    max-width: 85%;
+  }
+}
+</style>
+
+<!-- 添加全局样式重置，确保整个页面没有滚动条 -->
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden; /* 禁止整个页面滚动 */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f0f2f5;
+}
+
+#app {
+  height: 100vh;
+  overflow: hidden;
+}
+</style>
