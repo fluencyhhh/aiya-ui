@@ -1,108 +1,3 @@
-<script setup>
-import { ref, computed, onMounted, nextTick } from 'vue';
-
-// 对话消息列表
-const messages = ref([]);
-// 用户输入内容
-const userInput = ref('');
-// 加载状态
-const isLoading = ref(false);
-
-// 计算属性：判断输入框是否可发送
-const canSend = computed(() => {
-  return userInput.value.trim().length > 0 && !isLoading.value;
-});
-
-// 发送消息
-const sendMessage = async () => {
-  if (!canSend.value) return;
-  
-  const text = userInput.value.trim();
-  // 清空输入框
-  userInput.value = '';
-  
-  // 添加用户消息
-  messages.value.push({
-    id: Date.now(),
-    type: 'user',
-    content: text,
-    timestamp: new Date()
-  });
-  
-  // 滚动到底部
-  await nextTick();
-  scrollToBottom();
-  
-  // 设置加载状态
-  isLoading.value = true;
-  
-  // 模拟AI回复延迟
-  setTimeout(() => {
-    // 添加AI回复
-    messages.value.push({
-      id: Date.now() + 1,
-      type: 'ai',
-      content: getMockAIResponse(text),
-      timestamp: new Date()
-    });
-    
-    isLoading.value = false;
-    
-    // 滚动到底部
-    nextTick(() => scrollToBottom());
-  }, 1000);
-};
-
-// 模拟AI回复
-const getMockAIResponse = (userQuery) => {
-  const responses = [
-    '感谢您的提问！我是AI助手，可以帮助您解答各种问题。',
-    '这是一个很好的问题。根据我的理解，您想了解关于这个话题的更多信息。',
-    '您的问题很有趣。让我为您提供一些相关信息和建议。',
-    '我理解您的需求。针对您提到的情况，我有以下几点建议。',
-    '这个问题比较复杂，让我为您详细分析一下各个方面。'
-  ];
-  
-  // 根据用户输入内容简单分类回复
-  if (userQuery.includes('你好') || userQuery.includes('嗨')) {
-    return '你好！很高兴为您提供帮助，请问有什么我可以协助您的吗？';
-  } else if (userQuery.includes('帮助') || userQuery.includes('怎么')) {
-    return '当然可以帮助您！您可以问我任何问题，我会尽力提供准确的信息和建议。';
-  } else if (userQuery.includes('再见') || userQuery.includes('拜拜')) {
-    return '再见！如果您有任何其他问题，随时欢迎回来咨询。';
-  } else {
-    // 随机选择一个通用回复
-    return responses[Math.floor(Math.random() * responses.length)];
-  }
-};
-
-// 滚动到底部
-const scrollToBottom = () => {
-  const chatContainer = document.querySelector('.chat-messages');
-  if (chatContainer) {
-    chatContainer.scrollTop = chatContainer.scrollHeight;
-  }
-};
-
-// 处理键盘事件
-const handleKeyPress = (event) => {
-  if (event.key === 'Enter' && !event.shiftKey) {
-    event.preventDefault();
-    sendMessage();
-  }
-};
-
-// 组件挂载时添加欢迎消息
-onMounted(() => {
-  messages.value.push({
-    id: 1,
-    type: 'ai',
-    content: '您好！我是AI助手，很高兴为您提供帮助。请问有什么我可以协助您的吗？',
-    timestamp: new Date()
-  });
-});
-</script>
-
 <template>
   <!-- 模板部分保持不变 -->
   <div class="ai-chat-container">
@@ -152,6 +47,112 @@ onMounted(() => {
     </div>
   </div>
 </template>
+
+<script setup>
+import { ref, computed, onMounted, nextTick } from 'vue';
+
+// 对话消息列表
+const messages = ref([]);
+// 用户输入内容
+const userInput = ref('');
+// 加载状态
+const isLoading = ref(false);
+
+// 计算属性：判断输入框是否可发送
+const canSend = computed(() => {
+  return userInput.value.trim().length > 0 && !isLoading.value;
+});
+
+// 发送消息
+const sendMessage = async () => {
+  if (!canSend.value) return;
+
+  const text = userInput.value.trim();
+  // 清空输入框
+  userInput.value = '';
+
+  // 添加用户消息
+  messages.value.push({
+    id: Date.now(),
+    type: 'user',
+    content: text,
+    timestamp: new Date()
+  });
+
+  // 滚动到底部
+  await nextTick();
+  scrollToBottom();
+
+  // 设置加载状态
+  isLoading.value = true;
+
+  // 模拟AI回复延迟
+  setTimeout(() => {
+    // 添加AI回复
+    messages.value.push({
+      id: Date.now() + 1,
+      type: 'ai',
+      content: getMockAIResponse(text),
+      timestamp: new Date()
+    });
+
+    isLoading.value = false;
+
+    // 滚动到底部
+    nextTick(() => scrollToBottom());
+  }, 1000);
+};
+
+// 模拟AI回复
+const getMockAIResponse = (userQuery) => {
+  const responses = [
+    '感谢您的提问！我是AI助手，可以帮助您解答各种问题。',
+    '这是一个很好的问题。根据我的理解，您想了解关于这个话题的更多信息。',
+    '您的问题很有趣。让我为您提供一些相关信息和建议。',
+    '我理解您的需求。针对您提到的情况，我有以下几点建议。',
+    '这个问题比较复杂，让我为您详细分析一下各个方面。'
+  ];
+
+  // 根据用户输入内容简单分类回复
+  if (userQuery.includes('你好') || userQuery.includes('嗨')) {
+    return '你好！很高兴为您提供帮助，请问有什么我可以协助您的吗？';
+  } else if (userQuery.includes('帮助') || userQuery.includes('怎么')) {
+    return '当然可以帮助您！您可以问我任何问题，我会尽力提供准确的信息和建议。';
+  } else if (userQuery.includes('再见') || userQuery.includes('拜拜')) {
+    return '再见！如果您有任何其他问题，随时欢迎回来咨询。';
+  } else {
+    // 随机选择一个通用回复
+    return responses[Math.floor(Math.random() * responses.length)];
+  }
+};
+
+// 滚动到底部
+const scrollToBottom = () => {
+  const chatContainer = document.querySelector('.chat-messages');
+  if (chatContainer) {
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+  }
+};
+
+// 处理键盘事件
+const handleKeyPress = (event) => {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    sendMessage();
+  }
+};
+
+// 组件挂载时添加欢迎消息
+onMounted(() => {
+  messages.value.push({
+    id: 1,
+    type: 'ai',
+    content: '您好！我是AI助手，很高兴为您提供帮助。请问有什么我可以协助您的吗？',
+    timestamp: new Date()
+  });
+});
+</script>
+
 
 <style scoped>
 /* 重置容器样式，确保全屏显示且无滚动条 */
@@ -266,7 +267,7 @@ onMounted(() => {
   font-size: 12px;
   opacity: 0.6;
   position: absolute;
-  bottom: 4px;
+  bottom: 0px;
   right: 10px;
 }
 
