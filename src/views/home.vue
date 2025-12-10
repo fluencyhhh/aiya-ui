@@ -50,6 +50,7 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue';
+import { aiApi } from '../services/api';
 
 // 对话消息列表
 const messages = ref([]);
@@ -57,6 +58,8 @@ const messages = ref([]);
 const userInput = ref('');
 // 加载状态
 const isLoading = ref(false);
+// 错误消息
+const errorMessage = ref('');
 
 // 计算属性：判断输入框是否可发送
 const canSend = computed(() => {
@@ -66,11 +69,13 @@ const canSend = computed(() => {
 // 发送消息
 const sendMessage = async () => {
   if (!canSend.value) return;
-
+  
   const text = userInput.value.trim();
   // 清空输入框
   userInput.value = '';
-
+  // 清空错误消息
+  errorMessage.value = '';
+  
   // 添加用户消息
   messages.value.push({
     id: Date.now(),
@@ -78,51 +83,40 @@ const sendMessage = async () => {
     content: text,
     timestamp: new Date()
   });
-
+  
   // 滚动到底部
   await nextTick();
   scrollToBottom();
-
+  
   // 设置加载状态
   isLoading.value = true;
-
-  // 模拟AI回复延迟
-  setTimeout(() => {
-    // 添加AI回复
+  
+  try {
+    // 调用真实API获取AI回复
+    const response = await aiApi.askQuestion(text);
+    
+    // 添加AI回复（假设response中包含answer字段）
     messages.value.push({
       id: Date.now() + 1,
       type: 'ai',
-      content: getMockAIResponse(text),
+      content: response.answer || '抱歉，我无法生成回复。',
       timestamp: new Date()
     });
-
+  } catch (error) {
+    // 显示错误消息
+    errorMessage.value = '获取AI回复失败，请稍后重试';
+    messages.value.push({
+      id: Date.now() + 1,
+      type: 'ai',
+      content: '抱歉，我暂时无法回答您的问题，请稍后重试。',
+      timestamp: new Date(),
+      isError: true
+    });
+  } finally {
     isLoading.value = false;
-
+    
     // 滚动到底部
     nextTick(() => scrollToBottom());
-  }, 1000);
-};
-
-// 模拟AI回复
-const getMockAIResponse = (userQuery) => {
-  const responses = [
-    '感谢您的提问！我是AI助手，可以帮助您解答各种问题。',
-    '这是一个很好的问题。根据我的理解，您想了解关于这个话题的更多信息。',
-    '您的问题很有趣。让我为您提供一些相关信息和建议。',
-    '我理解您的需求。针对您提到的情况，我有以下几点建议。',
-    '这个问题比较复杂，让我为您详细分析一下各个方面。'
-  ];
-
-  // 根据用户输入内容简单分类回复
-  if (userQuery.includes('你好') || userQuery.includes('嗨')) {
-    return '你好！很高兴为您提供帮助，请问有什么我可以协助您的吗？';
-  } else if (userQuery.includes('帮助') || userQuery.includes('怎么')) {
-    return '当然可以帮助您！您可以问我任何问题，我会尽力提供准确的信息和建议。';
-  } else if (userQuery.includes('再见') || userQuery.includes('拜拜')) {
-    return '再见！如果您有任何其他问题，随时欢迎回来咨询。';
-  } else {
-    // 随机选择一个通用回复
-    return responses[Math.floor(Math.random() * responses.length)];
   }
 };
 
@@ -377,5 +371,22 @@ html, body {
 #app {
   height: 100vh;
   overflow: hidden;
+}
+
+
+/* 错误消息样式 */
+.error-message .message-content {
+  background-color: #ffebee !important;
+  color: #c62828 !important;
+}
+
+.error-notification {
+  background-color: #ffebee;
+  color: #c62828;
+  padding: 10px;
+  border-radius: 8px;
+  margin: 10px;
+  text-align: center;
+  font-size: 14px;
 }
 </style>
