@@ -97,68 +97,7 @@ service.interceptors.response.use(
 
     console.log('router.currentRoute.value.fullPath===', router.currentRoute.value.fullPath);
 
-    if (code === 401) {
-      // 🔥 修改：增强401处理逻辑，支持iframe自动重新登录
-      if (isIframe === 'true') {
-        // iframe模式下的自动重新登录逻辑
-        const loginParams = getIframeLoginParams();
-        if (loginParams && !isReLogging && canAutoLogin()) {
-          console.log('iframe模式：检测到401错误，尝试自动重新登录...');
-          isReLogging = true;
-          lastAutoLoginTime = Date.now();
-
-          // 🔥 关键修改：使用Promise处理，避免页面刷新
-          handleAutoReLogin(loginParams)
-            .then(() => {
-              console.log('自动重新登录成功');
-              resetLoginFailures();
-            })
-            .catch((error) => {
-              console.error('自动重新登录失败:', error);
-              recordLoginFailure();
-            })
-            .finally(() => {
-              isReLogging = false;
-            });
-        } else {
-          console.log('跳过自动登录：', {
-            hasParams: !!loginParams,
-            isReLogging,
-            canAutoLogin: canAutoLogin()
-          });
-        }
-
-        // iframe模式下直接返回结果，不刷新页面
-        return Promise.resolve(res.data);
-      } else {
-        // 非iframe模式保持原有逻辑
-        if (!isRelogin.show) {
-          isRelogin.show = true;
-          ElMessageBox.confirm('登录状态已过期，您可以继续留在该页面，或者重新登录', '系统提示', {
-            confirmButtonText: '重新登录',
-            cancelButtonText: '取消',
-            type: 'warning'
-          })
-            .then(() => {
-              isRelogin.show = false;
-              useUserStore()
-                .logout()
-                .then(() => {
-                  router.replace({
-                    path: '/login',
-                    query: {
-                      redirect: encodeURIComponent(router.currentRoute.value.fullPath || '/')
-                    }
-                  });
-                });
-            })
-            .catch(() => {
-              isRelogin.show = false;
-            });
-        }
-        return Promise.resolve(res.data);
-      }
-    } else if (code === HttpStatus.SERVER_ERROR) {
+    if (code === HttpStatus.SERVER_ERROR) {
       ElMessage({ message: msg, type: 'error' });
       return Promise.reject(new Error(msg));
     } else if (code === HttpStatus.WARN) {
@@ -172,46 +111,16 @@ service.interceptors.response.use(
     }
   },
   async (error: any) => {
-    // 🔥 修改：处理网络层面的401错误
-    if (error.response?.status === 401 && isIframe === 'true' && !isReLogging && canAutoLogin()) {
-      const loginParams = getIframeLoginParams();
-      if (loginParams) {
-        isReLogging = true;
-        lastAutoLoginTime = Date.now();
-        try {
-          console.log('网络层401错误，尝试自动重新登录...');
 
-          await handleAutoReLogin(loginParams);
-          console.log('自动重新登录成功');
-          resetLoginFailures();
-
-          // 重新发起原始请求
-          const originalRequest = error.config;
-          const newToken = getToken();
-          if (newToken) {
-            originalRequest.headers.Authorization = `Bearer ${newToken}`;
-            console.log('使用新token重新发起请求');
-            return service(originalRequest);
-          }
-        } catch (loginError) {
-          console.error('自动重新登录失败:', loginError);
-          recordLoginFailure();
-          sessionStorage.removeItem('iframeLoginParams');
-          cachedIframeLoginParams = null;
-        } finally {
-          isReLogging = false;
-        }
-      }
-    }
     // 原有的错误处理逻辑
-    /*let { message } = error;
+    let { message } = error;
     if (message == 'Network Error') {
       message = '后端接口连接异常' + error;
     } else if (message.includes('timeout')) {
       message = '系统接口请求超时' + error;
     } else if (message.includes('Request failed with status code')) {
       message = '系统接口' + message.substr(message.length - 3) + '异常' + error;
-    }*/
+    }
     // ElMessage({ message: message, type: 'error', duration: 5 * 1000 });
     ElMessage({ message: '请求异常' + error, type: 'error', duration: 5 * 1000 });
     return Promise.reject(error);
