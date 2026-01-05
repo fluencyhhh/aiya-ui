@@ -5,18 +5,18 @@
       <h2>AI 对话助手</h2>
       <p class="subtitle">智能问答，随时为您服务</p>
     </div>
-    
+
     <div class="chat-messages">
-      <div 
-        v-for="message in messages" 
-        :key="message.id"
-        :class="['message', message.type]"
+      <div
+          v-for="message in messages"
+          :key="message.id"
+          :class="['message', message.type, { 'error-message': message.isError }]"
       >
         <div class="avatar">
           {{ message.type === 'user' ? '👤' : '🤖' }}
         </div>
         <div class="message-content">
-          <p>{{ message.content }}</p>
+          <div class="markdown-body" v-html="renderMarkdown(message.content)"></div>
           <span class="message-time">{{ new Date(message.timestamp).toLocaleTimeString() }}</span>
         </div>
       </div>
@@ -28,19 +28,19 @@
         </div>
       </div>
     </div>
-    
+
     <div class="chat-input">
       <textarea
-        v-model="userInput"
-        @keypress="handleKeyPress"
-        placeholder="输入您的问题..."
-        rows="2"
-        :disabled="isLoading"
+          v-model="userInput"
+          @keypress="handleKeyPress"
+          placeholder="输入您的问题..."
+          rows="2"
+          :disabled="isLoading"
       ></textarea>
-      <button 
-        @click="sendMessage"
-        :disabled="!canSend"
-        class="send-button"
+      <button
+          @click="sendMessage"
+          :disabled="!canSend"
+          class="send-button"
       >
         {{ isLoading ? '发送中...' : '发送' }}
       </button>
@@ -49,92 +49,100 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue';
-import { aiApi } from '../services/api';
+import {ref, computed, onMounted, nextTick} from 'vue'
+import MarkdownIt from 'markdown-it'
+import {aiApi} from '../services/api'
 
 // 对话消息列表
-const messages = ref([]);
+const messages = ref([])
 // 用户输入内容
-const userInput = ref('');
+const userInput = ref('')
 // 加载状态
-const isLoading = ref(false);
+const isLoading = ref(false)
 // 错误消息
-const errorMessage = ref('');
+const errorMessage = ref('')
+
+// 初始化 markdown-it
+const md = new MarkdownIt({
+  html: false,
+  linkify: true,
+  breaks: true
+})
+
+// Markdown 渲染
+const renderMarkdown = (text = '') => md.render(text)
 
 // 计算属性：判断输入框是否可发送
 const canSend = computed(() => {
-  return userInput.value.trim().length > 0 && !isLoading.value;
-});
+  return userInput.value.trim().length > 0 && !isLoading.value
+})
 
 // 发送消息
 const sendMessage = async () => {
-  if (!canSend.value) return;
-  
-  const text = userInput.value.trim();
+  if (!canSend.value) return
+
+  const text = userInput.value.trim()
   // 清空输入框
-  userInput.value = '';
+  userInput.value = ''
   // 清空错误消息
-  errorMessage.value = '';
-  
+  errorMessage.value = ''
+
   // 添加用户消息
   messages.value.push({
     id: Date.now(),
     type: 'user',
     content: text,
     timestamp: new Date()
-  });
-  
+  })
+
   // 滚动到底部
-  await nextTick();
-  scrollToBottom();
-  
-  // 设置加载状态
-  isLoading.value = true;
-  
-  try {
-    // 调用真实API获取AI回复
-    const response = await aiApi.askQuestion(text);
-    
-    // 添加AI回复（假设response中包含answer字段）
-    messages.value.push({
-      id: Date.now() + 1,
-      type: 'ai',
-      content: response.answer || '抱歉，我无法生成回复。',
-      timestamp: new Date()
-    });
-  } catch (error) {
-    // 显示错误消息
-    errorMessage.value = '获取AI回复失败，请稍后重试';
-    messages.value.push({
-      id: Date.now() + 1,
-      type: 'ai',
-      content: '抱歉，我暂时无法回答您的问题，请稍后重试。',
-      timestamp: new Date(),
-      isError: true
-    });
-  } finally {
-    isLoading.value = false;
-    
-    // 滚动到底部
-    nextTick(() => scrollToBottom());
+  await nextTick()
+  scrollToBottom()
+
+  // 占位AI消息，流式累加内容
+  const aiMessage = {
+    id: Date.now() + 1,
+    type: 'ai',
+    content: '',
+    timestamp: new Date()
   }
-};
+  messages.value.push(aiMessage)
+  isLoading.value = true
+  let fullText = ""
+  try {
+    await aiApi.askQuestion(text, (chunk) => {
+      fullText += chunk
+      aiMessage.content = fullText
+      nextTick(() => scrollToBottom())
+    })
+    if (!aiMessage.content) {
+      aiMessage.content = '抱歉，我无法生成回复。'
+    }
+  } catch (error) {
+    errorMessage.value = '获取AI回复失败，请稍后重试'
+    aiMessage.content = '抱歉，我暂时无法回答您的问题，请稍后重试。'
+    aiMessage.isError = true
+  } finally {
+    isLoading.value = false
+    nextTick(() => scrollToBottom())
+  }
+}
 
 // 滚动到底部
 const scrollToBottom = () => {
-  const chatContainer = document.querySelector('.chat-messages');
+  const chatContainer = document.querySelector('.chat-messages')
   if (chatContainer) {
-    chatContainer.scrollTop = chatContainer.scrollHeight;
+    chatContainer.scrollTop = chatContainer.scrollHeight
   }
-};
+}
 
 // 处理键盘事件
 const handleKeyPress = (event) => {
   if (event.key === 'Enter' && !event.shiftKey) {
-    event.preventDefault();
-    sendMessage();
+    event.preventDefault()
+    sendMessage()
   }
-};
+}
 
 // 组件挂载时添加欢迎消息
 onMounted(() => {
@@ -143,8 +151,8 @@ onMounted(() => {
     type: 'ai',
     content: '您好！我是AI助手，很高兴为您提供帮助。请问有什么我可以协助您的吗？',
     timestamp: new Date()
-  });
-});
+  })
+})
 </script>
 
 
@@ -289,12 +297,21 @@ onMounted(() => {
   animation: typing 1.4s infinite ease-in-out both;
 }
 
-.dot:nth-child(1) { animation-delay: -0.32s; }
-.dot:nth-child(2) { animation-delay: -0.16s; }
+.dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
 
 @keyframes typing {
-  0%, 80%, 100% { transform: scale(0); }
-  40% { transform: scale(1); }
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
 }
 
 .chat-input {
@@ -348,6 +365,29 @@ textarea:focus {
   .message-content {
     max-width: 85%;
   }
+}
+
+.markdown-body {
+  word-wrap: break-word;
+  line-height: 1.6;
+}
+
+.markdown-body code {
+  background: #f2f2f2;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.markdown-body pre {
+  background: #f2f2f2;
+  padding: 10px;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+.markdown-body ul, .markdown-body ol {
+  padding-left: 18px;
+  margin: 6px 0;
 }
 </style>
 
