@@ -1,26 +1,28 @@
 <script setup>
-import HomeView from './views/home.vue'
+import AuthView from './views/auth.vue'
 </script>
 
 <template>
   <div class="app-container">
-    <HomeView />
+    <AuthView />
   </div>
 </template>
 
 <style>
-/* 全局样式重置 */
+:root {
+  color: #1f2a44;
+  background-color: #f5f7fb;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-html, body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-color: #f0f2f5;
+body {
+  background-color: #f5f7fb;
 }
 
 .app-container {

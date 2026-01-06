@@ -51,7 +51,7 @@
 <script setup>
 import {ref, computed, onMounted, nextTick} from 'vue'
 import MarkdownIt from 'markdown-it'
-import {aiApi} from '../services/api'
+import {postStreamChat, getStreamChat} from "../services/api";
 
 // 对话消息列表
 const messages = ref([])
@@ -107,25 +107,29 @@ const sendMessage = async () => {
     timestamp: new Date()
   }
   messages.value.push(aiMessage)
+  let lastIndex=messages.value.length -1
   isLoading.value = true
   let fullText = ""
-  try {
-    await aiApi.askQuestion(text, (chunk) => {
-      fullText += chunk
-      aiMessage.content = fullText
+  getStreamChat(
+      {question:text},
+    async (chunk) => {
+        isLoading.value = false
+      console.log("Received chunk:", chunk);
+      aiMessage.content += chunk.data
+      let newArr=[...messages.value]
+      newArr[lastIndex].content=aiMessage.content
+      messages.value=newArr
+    },
+    (err) => {
+      errorMessage.value = '获取AI回复失败，请稍后重试'
+      aiMessage.content = '抱歉，我暂时无法回答您的问题，请稍后重试。'
+      aiMessage.isError = true
+    },
+    () => {
+      isLoading.value = false
       nextTick(() => scrollToBottom())
-    })
-    if (!aiMessage.content) {
-      aiMessage.content = '抱歉，我无法生成回复。'
     }
-  } catch (error) {
-    errorMessage.value = '获取AI回复失败，请稍后重试'
-    aiMessage.content = '抱歉，我暂时无法回答您的问题，请稍后重试。'
-    aiMessage.isError = true
-  } finally {
-    isLoading.value = false
-    nextTick(() => scrollToBottom())
-  }
+  )
 }
 
 // 滚动到底部
