@@ -1,6 +1,5 @@
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 class FatalError extends Error {}
-class RetriableError extends Error {}
 
 type ResultCallBack = (e: any | null) => void;
 
@@ -24,21 +23,15 @@ export const postStreamChat = (
     onmessage: onMessage,
     onerror: (err: any) => {
       onError(err);
+      ctrl.abort();
+      throw new FatalError();
     },
     onclose: () => {
       onClose(null);
     },
     onopen: async (response: any) => {
-      if (response.ok) {
-        return;
-      } else if (
-          response.status >= 400 &&
-          response.status < 500 &&
-          response.status !== 429
-      ) {
+      if (!response.ok) {
         throw new FatalError();
-      } else {
-        throw new RetriableError();
       }
     },
   });
@@ -55,7 +48,6 @@ export const getStreamChat = (
   // 构建完整URL，附加查询参数
   const queryString = params ? `?${new URLSearchParams(params).toString()}` : ''
   const fullUrl = `${apiBaseUrl}/aitest/answerQuestion${queryString}`
-  debugger
   fetchEventSource(fullUrl, {
     method: "GET",
     headers: {
@@ -66,21 +58,15 @@ export const getStreamChat = (
     onmessage: onMessage,
     onerror: (err: any) => {
       onError(err);
+      ctrl.abort();
+      throw new FatalError();
     },
     onclose: () => {
       onClose(null);
     },
     onopen: async (response: any) => {
-      if (response.ok) {
-        return;
-      } else if (
-          response.status >= 400 &&
-          response.status < 500 &&
-          response.status !== 429
-      ) {
+      if (!response.ok) {
         throw new FatalError();
-      } else {
-        throw new RetriableError();
       }
     },
   });
