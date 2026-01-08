@@ -220,7 +220,7 @@ function formatTitle(text, size) {
 
 function preview(conv) {
   const last = conv.messages[conv.messages.length - 1]
-  return last?.content?.slice(0, 20) || '点击查看对话'
+  return last?.content?.slice(0, 18) || '点击查看对话'
 }
 
 function updateTitle(conv, text) {
