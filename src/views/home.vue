@@ -285,9 +285,11 @@ function sendMessage() {
   debugger
   let lastIndex=conv.messages.length -1
   getStreamChat(
-    { question: text },
+    { prompt: text },
     (chunk) => {
-      aiMsg.content += chunk?.data || ''
+      debugger
+      let data=JSON.parse(chunk?.data)
+      aiMsg.content += data?.content || ''
       let newArr=[...conv.messages]
       newArr[lastIndex].content=aiMsg.content
       conv.messages=newArr

@@ -47,7 +47,7 @@ export const getStreamChat = (
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001/ai';
   // 构建完整URL，附加查询参数
   const queryString = params ? `?${new URLSearchParams(params).toString()}` : ''
-  const fullUrl = `${apiBaseUrl}/aitest/answerQuestion${queryString}`
+  const fullUrl = `${apiBaseUrl}/chat/chat${queryString}`
   fetchEventSource(fullUrl, {
     method: "GET",
     headers: {
