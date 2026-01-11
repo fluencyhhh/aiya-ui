@@ -111,6 +111,7 @@ const conversations = ref([createConversation()])
 const activeConversationId = ref(conversations.value[0].id)
 const userInput = ref('')
 const isStreaming = ref(false)
+const dialogueId = ref('')
 
 // 新增：侧边栏状态控制
 const isSidebarOpen = ref(window.innerWidth > 768)
@@ -282,18 +283,19 @@ function sendMessage() {
   }
   conv.messages.push(aiMsg)
   isStreaming.value = true
-  debugger
+  // debugger
   let lastIndex=conv.messages.length -1
   getStreamChat(
-    { prompt: text },
+    { prompt: text, dialogueId: dialogueId.value },
     (chunk) => {
-      debugger
       let data=JSON.parse(chunk?.data)
       aiMsg.content += data?.content || ''
+      if(!dialogueId.value.trim()){
+        dialogueId.value = data?.dialogueId || null
+      }
       let newArr=[...conv.messages]
       newArr[lastIndex].content=aiMsg.content
       conv.messages=newArr
-
       scrollToBottom()
     },
     () => {

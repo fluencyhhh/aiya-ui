@@ -1,5 +1,4 @@
 import { fetchEventSource } from "@microsoft/fetch-event-source";
-class FatalError extends Error {}
 
 type ResultCallBack = (e: any | null) => void;
 
@@ -24,14 +23,14 @@ export const postStreamChat = (
     onerror: (err: any) => {
       onError(err);
       ctrl.abort();
-      throw new FatalError();
+      throw err;
     },
     onclose: () => {
       onClose(null);
     },
     onopen: async (response: any) => {
       if (!response.ok) {
-        throw new FatalError();
+
       }
     },
   });
@@ -59,14 +58,13 @@ export const getStreamChat = (
     onerror: (err: any) => {
       onError(err);
       ctrl.abort();
-      throw new FatalError();
+      throw err;
     },
     onclose: () => {
       onClose(null);
     },
     onopen: async (response: any) => {
       if (!response.ok) {
-        throw new FatalError();
       }
     },
   });
