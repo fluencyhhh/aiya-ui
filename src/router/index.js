@@ -14,4 +14,14 @@ const router = createRouter({
   ]
 })
 
+const whiteList = ['/login', '/register']
+
+router.beforeEach((to) => {
+  const token = localStorage.getItem('aiya-token')
+  if (whiteList.includes(to.path)) {
+    return token ? '/home' : true
+  }
+  return token ? true : '/login'
+})
+
 export default router

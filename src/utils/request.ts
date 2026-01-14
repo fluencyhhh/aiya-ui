@@ -8,16 +8,22 @@ import { LoadingInstance } from 'element-plus/es/components/loading/src/loading'
 
 axios.defaults.headers['Content-Type'] = 'application/json;charset=utf-8';
 
-// 创建 axios 实例
+const gatewayBase = import.meta.env.VITE_GATEWAY_BASE_URL;
 const service = axios.create({
-  baseURL: import.meta.env.VITE_APP_BASE_API,
+  baseURL: gatewayBase
+    ? `${gatewayBase}${import.meta.env.VITE_APP_BASE_API || ''}`
+    : import.meta.env.VITE_APP_BASE_API,
   timeout: 600000
 });
 
 // 请求拦截器
 service.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-
+    const token = localStorage.getItem('aiya-token');
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers['Authorization'] = token;
+    }
 // 是否需要防止数据重复提交
     const isRepeatSubmit = config.headers?.repeatSubmit === false;
     // get请求映射params参数
